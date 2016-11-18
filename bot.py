@@ -1,5 +1,6 @@
 import discord
 import asyncio
+from itertools import chain
 
 client = discord.Client()
 loop = asyncio.get_event_loop()
@@ -103,9 +104,14 @@ def updateconsoleoutputchannel():
 		consolechannel = client.get_channel(consolechannel)
 	varlist.insert(15, consolechannel)
 	print("Console output channel set successfully.")
+	
 async def print_console_channel(content):
 	global consolechannel
-	await client.send_message(consolechannel, content)
+	if consolechannel != "":
+		await client.send_message(consolechannel, content)
+	else:
+		print("Error: Console channel not defined!")
+	
 @client.event
 async def on_message(message):
 	if message.content.startswith('%test'):
@@ -145,16 +151,20 @@ async def on_message(message):
 		global channels
 		channels.append(message.channel)
 		await client.send_message(message.channel, "Channel added successfully.")
-	elif message.content.startswith('%denounce'):
+	elif message.content.startswith('%relay'):
 		tmp = str(message.content)
-		tmp = tmp[10:]
+		tmp = tmp[7:]
+		tmp = "".join(tmp)
 		print("First split: " + tmp)
-		tmp2 = tmp.split(" ")
-		print("Second split: " + tmp2[0] + tmp2[1])
-		if tmp2[0] in nation and tmp2[1] in nation:
+		tmp2 = tmp.split()
+		if tmp2[0] in nation:
+			tmp3 = tmp2[0]
+			tmp2 = " ".join(tmp2)
+			tmp2 = tmp2.replace(tmp3, "")
+			print("Contents of tmp2: " + tmp2)
 			for channel in channels:
 				print(channel)
-				await client.send_message(channel, tmp2[0] + " has denounced " + tmp2[1] + "!")
+				await client.send_message(channel, "Message from " + tmp3 + ":" + tmp2)
 	elif message.content.startswith("%about"):
 		await client.send_message(message.channel, "Things about me:" + "\n" + "Preferred name: Ophelia" + "\n" + "Invoker: %" + "\n" + "Invite link: https://discordapp.com/oauth2/authorize?client_id=248240386869297155&scope=bot&permissions=0")
 	elif message.content.startswith("%setconsolechannel"):
@@ -168,4 +178,14 @@ async def on_message(message):
 	elif message.content.startswith("%echo"):
 		if message.author.id != client.user.id:
 			await print_console_channel(message.content)
+	elif message.content.startswith("%genserverentry"):
+			with open(message.server.id, "w") as file:
+				tmp = message.channel
+				tmp2 = message.author
+				await client.send_message(tmp, "Set your server's relay channel using %setrelaychannel.")
+				tmp = client.wait_for_message(timeout=60, channel=message.channel, author=tmp2, content="%setrelaychannel")
+				print(message.author.server_permissions.administrator)
+				if message.author.server_permissions.administrator:
+					file.write(message.channel.id)
+					await client.send_message(message.channel, "This channel has been set as the relay channel.")
 client.run('MjQ4MjQwMzg2ODY5Mjk3MTU1.Cw3Q_Q.AgwD4S6h3SrnDXG2H6Utrgwo11k')
