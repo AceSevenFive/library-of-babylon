@@ -2,11 +2,11 @@ import discord
 import asyncio
 import os.path
 from itertools import chain
+import itertools
 
 client = discord.Client()
 loop = asyncio.get_event_loop()
 varlist = [] * 256
-channels = [] * 256
 consolechannel = ""
 nations = [] * 256
 @client.event
@@ -21,18 +21,16 @@ async def on_ready():
 	updatenations()
 
 def updateadmins():
+	global author
+	global varlist
+	global nationmods
 	with open('admin', 'r') as file:
-		global author
-		global varlist
 		author = file.read()
 		author = author.split()
 		varlist.insert(0, author)
 		print('Admins updated successfully.')
 	with open('nationmods', 'r') as file:
-		global nationmods
-		global varlist
-		nationmods = file.read()
-		nationmods = nationmods.split()
+		nationmods = file.readlines()
 		varlist.insert(1, nationmods)
 		print("Nation mods updated successfully.")
 		
@@ -68,7 +66,8 @@ async def print_console_channel(content, messagetype):
 		elif messagetype == 3:
 			await client.send_message(consolechannel, "[INTERNAL] " + content)
 		elif messagetype == 4:
-			await client.send_message(consolechannel, "[ALERT] " + client.user.get_user_info("174827375639396352").mention + ": " + content)
+			tmp666 = await client.get_user_info("174827375639396352")
+			await client.send_message(consolechannel, "[ALERT] " + tmp666.mention + ": " + content)
 	else:
 		print("Error: Console channel not defined!")
 	
@@ -113,14 +112,45 @@ async def on_message(message):
 		tmp = "".join(tmp)
 		print("First split: " + tmp)
 		tmp2 = tmp.split()
-		if tmp2[0] in nation:
+		if tmp2[0] in nations:
 			tmp3 = tmp2[0]
 			tmp2 = " ".join(tmp2)
 			tmp2 = tmp2.replace(tmp3, "")
-			print("Contents of tmp2: " + tmp2)
-			for channel in channels:
-				print(channel)
-				await client.send_message(channel, "Message from " + tmp3 + ":" + tmp2)
+			tmp2 = tmp2.split()
+			print("Second split: " + str(tmp2))
+			if tmp2[0] in nations:
+				tmp11 = tmp2[0]
+				with open(tmp11, "r") as file:
+					tmp4 = file.readlines()
+					tmp4 = "".join(tmp4)
+					tmp4 = tmp4.replace("\n", " ")
+					tmp4 = "".join(tmp4)
+					tmp4 = tmp4.split()
+					tmp8 = tmp4
+					tmp7 = tmp4[tmp4.index("-RELAYCHANNEL-"):tmp4.index("-RELAYAUTHUSERS-")]
+					print(str(tmp4))
+					tmp7.remove("-RELAYCHANNEL-")
+					tmp7.remove("&&&&&")
+					tmp7 = "".join(tmp7)
+				with open(tmp3, "r") as file:
+					tmp12 = file.readlines()
+					tmp12 = "".join(tmp12)
+					tmp12 = tmp12.replace("\n", " ")
+					print(str(tmp12))
+					tmp6 = tmp12[tmp12.index("-RELAYAUTHUSERS-"):tmp12.index("-ENDOFSTATS-")]
+					tmp6 = tmp6.split()
+					tmp6.remove("-RELAYAUTHUSERS-")
+					tmp6 = "".join(tmp6)
+				tmp9 = str(message.author.id)
+				print(tmp9)
+				print(tmp6)
+				if tmp9 in tmp6:
+					tmp5 = client.get_channel(tmp7)
+					tmp2 = " ".join(tmp2)
+					tmp2 = tmp2.replace(tmp11, "")
+					await client.send_message(tmp5, "Message from " + tmp3 + ":" + tmp2)
+				else:
+					await client.send_message(message.channel, "Error: You are not authorized to send relay messages.")
 	elif message.content.startswith("%about"):
 		await client.send_message(message.channel, "Things about me:" + "\n" + "Preferred name: Ophelia" + "\n" + "Invoker: %" + "\n" + "Invite link: https://discordapp.com/oauth2/authorize?client_id=248240386869297155&scope=bot&permissions=0")
 	elif message.content.startswith("%setconsolechannel"):
@@ -153,9 +183,11 @@ async def on_message(message):
 					tmp2 = tmp2.split()
 					file.close()
 				with open(tmp3[0], "a") as file:
+					file.write("-NATIONSTATS-" + "\n")
 					for stat in tmp2:
 						file.write(stat + "\n")
 					file.write("&&&&&" + "\n")
+					file.write("-LOCALNATIONMODS-" + "\n")
 				if tmp3[0] not in nations:
 					await addnation(tmp3[0])
 				await client.send_message(message.channel, "Now, send %setlocalnationmods and @mention a list of people you want to be able to mod your nation's bot stuff.")
@@ -173,26 +205,118 @@ async def on_message(message):
 						for user in tmp5:
 							file.write(str(user))
 							file.write("\n")
-						file.write("&&&&&")
+						file.write("&&&&&" + "\n")
 				await client.send_message(message.channel, "Now, send %setrelaychannel in the channel you want to have incoming messages sent to. Make sure I can see it.")
 				tmp = await client.wait_for_message(timeout=60, author=message.author, content="%setrelaychannel")
 				with open(tmp3[0], "a") as file:
+					file.write("-RELAYCHANNEL-")
 					file.write("\n" + str(tmp.channel.id) + "\n")
 					file.write("&&&&&")
+					file.write("\n" + "-RELAYAUTHUSERS-" + "\n")
+				await client.send_message(message.channel, "Now, send %setrelayauth and mention a list of people you want to be able to use the relay on your nation's behalf.")
+				tmp = await client.wait_for_message(timeout=60, author=message.author)
+				tmp8 = tmp.raw_mentions
+				tmp = str(tmp.content)
+				tmp9 = tmp.split()
+				if tmp9[0].startswith("%setrelayauth"):
+					tmp9.remove("%setrelayauth")
+					tmp10 = " ".join(tmp8)
+					tmp10 = tmp10.split()
+					with open(tmp3[0], "a") as file:
+						for user in tmp10:
+							file.write(str(user))
+							file.write("\n")
+						file.write("-ENDOFSTATS-")
+						file.write("\n" + "&&&&&")
 				await client.send_message(message.channel, "All done!")
-	
 	elif message.content.startswith("%addnationmod"):
-		if message.author.id in nationmods or message.author.id in author or message.author.id == '174827375639396352':
+		if message.author.id in author or message.author.id == '174827375639396352':
+			global nationmods
 			tmp = message.raw_mentions
-			tmp = " ".join(tmp)
-			print(tmp)
-			with open('nationmods', 'a') as file:
-				file.write(tmp + '\n')
-			await client.send_message(message.channel, "Successfully added user to nation mods list.")
-			await print_console_channel("User added as nation mod.", 2)
-			updatenationmods()
+			if tmp not in nationmods:
+				tmp = " ".join(tmp)
+				print(tmp)
+				with open('nationmods', 'a') as file:
+					file.write(tmp + '\n')
+				await client.send_message(message.channel, "Successfully added user to global nation mods list.")
+				await print_console_channel("User added as nation mod.", 2)
+				updateadmins()
+			else:
+				await client.send_message(message.channel, "That user is already a global nation mod.")
 		else:
 			await client.send_message(message.channel, "You do not have permission to execute this command.")
 			await print_console_channel("Attempt at %addnationmod from" + message.raw_mentions, 4)
-	
+	elif message.content.startswith("%removenationmod"):
+		if message.author.id in author or message.author.id == "174827375639396352":
+			tmp = message.raw_mentions
+			tmp = "".join(tmp)
+			global nationmods
+			if str(nationmods).find(tmp) != -1:
+				tmp2 = " ".join(tmp)
+				with open("nationmods", "r") as file:
+					tmp2 = file.readlines()
+				tmp2.remove(tmp + "\n")
+				tmp2 = "".join(tmp2)
+				with open("nationmods", "w") as file:
+					file.write(tmp2)
+				await client.send_message(message.channel, "That user is no longer a global nation mod.")
+			else:
+				await client.send_message(message.channel, "That user is not a global nation mod.")
+		else:
+			await client.send_message(message.channel, "You do not have permission to execute this command.")
+			await print_console_channel("Attempt at %removenationmod from" + message.raw_mentions, 4)
+	elif message.content.startswith("%liststaff"):
+		tmp = str(message.content)
+		tmp = tmp[11:]
+		tmp = "".join(tmp)
+		tmp2 = tmp.split()
+		if tmp2[0] == "nationmods":
+			tmp2 = "".join(tmp2)
+			print(tmp2)
+			tmp2 = tmp2[10:]
+			print(tmp2)
+			tmp2 = tmp2.split()
+			print(str(tmp2))
+			if tmp2[0] == "global":
+				with open("nationmods", "r") as file:
+					tmp3 = file.read()
+					tmp3 = tmp3.split()
+					await client.send_message(message.channel, "List of global nation mods:")
+					for user in tmp3:
+						tmp4 = await client.get_user_info(user)
+						await client.send_message(message.channel, tmp4)
+			elif tmp2[0] in nations:
+				with open(tmp2[0], "r") as file:
+					tmp3 = file.read()
+					tmp3 = tmp3.split()
+					tmp3 = tmp3[tmp3.index("-LOCALNATIONMODS-"):tmp3.index("-RELAYCHANNEL-")]
+					tmp3.remove("&&&&&")
+					tmp3.remove("-LOCALNATIONMODS-")
+					for user in tmp3:
+						tmp3[tmp3.index(user)] = str(await client.get_user_info(user))
+					tmp3 = "\n".join(tmp3)
+					await client.send_message(message.channel, "List of nation mods for " + tmp2[0] + ":" + "\n" + tmp3)
+		elif tmp2[0] == "admins":
+			with open("admin", "r") as file:
+				tmp3 = file.read()
+				tmp3 = tmp3.split()
+				await client.send_message(message.channel, "List of bot admins:")
+				for user in tmp3:
+					tmp4 = await client.get_user_info(user)
+					await client.send_message(message.channel, tmp4)
+	elif message.content.startswith("%shownationstats"):
+		tmp = str(message.content)
+		tmp = tmp[17:]
+		tmp = "".join(tmp)
+		tmp2 = tmp.split()
+		if tmp2[0] in nations:
+			with open(tmp2[0], "r") as file:
+				tmp3 = file.read()
+				tmp3 = tmp3.split()
+				tmp3[0] = tmp3[0] + tmp3[1]
+				tmp3[0] = []
+				tmp3[1] = []
+				await client.send_message(message.channel, "STATS FOR " + str(tmp3[1]) + ":" + "\n" + "Vassal of: " + str(tmp3[2]) + "\n" + "Treasury: " + str(tmp3[3]) + "\n" + "GPT: " + str(tmp3[4]) + "\n" + "Friendships: " + str(tmp3[5]) + "\n" + "Open Borders: " + str(tmp3[6]) + "\n" + "Alliances: " + str(tmp3[7]) + "\n" + "Defensive Pacts: " + str(tmp3[8]) + "\n" + "Denouncing: " + str(tmp3[9]) + "\n" + "War: " + str(tmp3[10]))
+		else:
+			await client.send_message(message.channel, "Invalid argument. Use %help shownationstats for help.")
 client.run('MjQ4MjQwMzg2ODY5Mjk3MTU1.Cw3Q_Q.AgwD4S6h3SrnDXG2H6Utrgwo11k')
