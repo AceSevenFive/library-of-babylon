@@ -53,7 +53,8 @@ def updatenations():
 async def addnation(name):
 	with open("nations", "a") as file:
 		file.write("\n" + name)
-		updatenations()
+		file.close()
+	updatenations()
 	await print_console_channel("New nation added: " + name, 2)
 	
 async def print_console_channel(content, messagetype):
@@ -107,7 +108,7 @@ async def on_message(message):
 	elif message.content.startswith('%channelid'):
 		await client.send_message(message.channel, message.channel.id)
 	elif message.content.startswith('%relay'):
-		tmp = str(message.content)
+		tmp = message.content
 		tmp = tmp[7:]
 		tmp = "".join(tmp)
 		print("First split: " + tmp)
@@ -319,4 +320,10 @@ async def on_message(message):
 				await client.send_message(message.channel, "STATS FOR " + str(tmp3[1]) + ":" + "\n" + "Vassal of: " + str(tmp3[2]) + "\n" + "Treasury: " + str(tmp3[3]) + "\n" + "GPT: " + str(tmp3[4]) + "\n" + "Friendships: " + str(tmp3[5]) + "\n" + "Open Borders: " + str(tmp3[6]) + "\n" + "Alliances: " + str(tmp3[7]) + "\n" + "Defensive Pacts: " + str(tmp3[8]) + "\n" + "Denouncing: " + str(tmp3[9]) + "\n" + "War: " + str(tmp3[10]))
 		else:
 			await client.send_message(message.channel, "Invalid argument. Use %help shownationstats for help.")
+	elif message.content.startswith("%help"):
+		tmp = message.content
+		tmp = tmp[6:]
+		if tmp == "shownationstats":
+			await client.send_message(message.author, "**shownationstats**:" + "\n" + 
+			
 client.run('MjQ4MjQwMzg2ODY5Mjk3MTU1.Cw3Q_Q.AgwD4S6h3SrnDXG2H6Utrgwo11k')
