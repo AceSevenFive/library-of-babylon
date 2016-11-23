@@ -324,6 +324,6 @@ async def on_message(message):
 		tmp = message.content
 		tmp = tmp[6:]
 		if tmp == "shownationstats":
-			await client.send_message(message.author, "**shownationstats**:" + "\n" + 
+			await client.send_message(message.author, "**shownationstats**:" + "\n")
 			
 client.run('MjQ4MjQwMzg2ODY5Mjk3MTU1.Cw3Q_Q.AgwD4S6h3SrnDXG2H6Utrgwo11k')
